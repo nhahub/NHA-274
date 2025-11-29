@@ -235,7 +235,7 @@ jobs:
         with:
           images: ghcr.io/${{ env.REPO }}/backend
           tags: |
-            type=sha,prefix=,format=short
+            type=sha,prefix=,format=long
             type=ref,event=branch
             type=raw,value=latest,enable={{is_default_branch}}
 
@@ -282,7 +282,7 @@ jobs:
         with:
           images: ghcr.io/${{ env.REPO }}/frontend
           tags: |
-            type=sha,prefix=,format=short
+            type=sha,prefix=,format=long
             type=ref,event=branch
             type=raw,value=latest,enable={{is_default_branch}}
 
@@ -324,7 +324,7 @@ jobs:
       - name: Run Trivy vulnerability scanner on backend
         uses: aquasecurity/trivy-action@0.28.0
         with:
-          image-ref: ghcr.io/${{ env.REPO }}/backend:${{ github.event.pull_request.head.sha || github.sha }}
+          image-ref: ghcr.io/${{ env.REPO }}/backend:${{ github.sha }}
           format: 'table'
           exit-code: '0'
           severity: 'HIGH,CRITICAL'
@@ -335,7 +335,7 @@ jobs:
       - name: Run Trivy vulnerability scanner on frontend
         uses: aquasecurity/trivy-action@0.28.0
         with:
-          image-ref: ghcr.io/${{ env.REPO }}/frontend:${{ github.event.pull_request.head.sha || github.sha }}
+          image-ref: ghcr.io/${{ env.REPO }}/frontend:${{ github.sha }}
           format: 'table'
           exit-code: '0'
           severity: 'HIGH,CRITICAL'
