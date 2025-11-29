@@ -501,10 +501,11 @@ jobs:
         uses: aquasecurity/tfsec-action@v1.0.3
         with:
           soft_fail: true
+          format: sarif
 
       - name: Upload tfsec results
         uses: github/codeql-action/upload-sarif@v4
-        if: always()
+        if: always() && hashFiles('results.sarif') != ''
         with:
           sarif_file: results.sarif
 
