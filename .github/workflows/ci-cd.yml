@@ -272,6 +272,9 @@ jobs:
     name: Trivy Security Scan
     runs-on: ubuntu-latest
     needs: [build-backend, build-frontend]
+    permissions:
+      security-events: write
+      contents: read
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -302,7 +305,7 @@ jobs:
           severity: 'HIGH,CRITICAL'
 
       - name: Upload Trivy results to GitHub Security
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
           sarif_file: 'trivy-results.sarif'
@@ -326,6 +329,9 @@ jobs:
     name: njsscan SAST
     runs-on: ubuntu-latest
     continue-on-error: true
+    permissions:
+      security-events: write
+      contents: read
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -345,14 +351,14 @@ jobs:
         run: njsscan frontend/ --sarif -o njsscan-frontend.sarif || true
 
       - name: Upload backend results
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
           sarif_file: njsscan-backend.sarif
           category: njsscan-backend
 
       - name: Upload frontend results
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
           sarif_file: njsscan-frontend.sarif
@@ -460,6 +466,9 @@ jobs:
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
     continue-on-error: true
+    permissions:
+      security-events: write
+      contents: read
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -468,11 +477,9 @@ jobs:
         uses: aquasecurity/tfsec-action@v1.0.3
         with:
           soft_fail: true
-          format: sarif
-          additional_args: --severity HIGH,CRITICAL
 
       - name: Upload tfsec results
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
           sarif_file: results.sarif
