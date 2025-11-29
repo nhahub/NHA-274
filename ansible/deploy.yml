@@ -1,0 +1,177 @@
+---
+- name: Manage ProShop stack with Docker Compose
+  hosts: localhost
+  connection: local
+  become: true
+
+  vars:
+    project_dir: "{{ lookup('env', 'HOME') }}/proshop"
+    action: "deploy"
+
+  tasks:
+    - name: Display detected OS
+      ansible.builtin.debug:
+        msg: "Detected OS Family: {{ ansible_os_family }} ({{ ansible_distribution }} {{ ansible_distribution_version }})"
+
+    - name: Fail if OS is unsupported
+      ansible.builtin.fail:
+        msg: "Unsupported OS family: {{ ansible_os_family }}. Only Debian/Ubuntu and RedHat/CentOS/Fedora are supported."
+      when: ansible_os_family not in ["Debian", "RedHat"]
+
+
+    - name: Update apt cache (Debian/Ubuntu)
+      ansible.builtin.apt:
+        update_cache: yes
+        cache_valid_time: 3600
+      when: ansible_os_family == "Debian"
+
+    - name: Install prerequisites (Debian/Ubuntu)
+      ansible.builtin.apt:
+        name:
+          - curl
+          - ca-certificates
+          - gnupg
+          - lsb-release
+          - python3-pip
+          - python3-docker
+        state: present
+      when: ansible_os_family == "Debian"
+
+    - name: Install prerequisites (RHEL/CentOS/Fedora)
+      ansible.builtin.package:
+        name:
+          - curl
+          - ca-certificates
+          - gnupg2
+          - python3-pip
+          - python3-docker
+        state: present
+      when: ansible_os_family == "RedHat"
+
+    - name: Check if Docker is installed
+      ansible.builtin.command: docker --version
+      register: docker_check
+      ignore_errors: true
+
+    - name: Install Docker Engine (Debian/Ubuntu)
+      block:
+        - name: Add Docker GPG key
+          ansible.builtin.apt_key:
+            url: https://download.docker.com/linux/{{ ansible_distribution | lower }}/gpg
+            state: present
+
+        - name: Add Docker repository
+          ansible.builtin.apt_repository:
+            repo: "deb [arch=amd64] https://download.docker.com/linux/{{ ansible_distribution | lower }} {{ ansible_distribution_release }} stable"
+            state: present
+
+        - name: Install Docker packages
+          ansible.builtin.package:
+            name:
+              - docker-ce
+              - docker-ce-cli
+              - containerd.io
+              - docker-compose-plugin
+            state: present
+
+        - name: Enable and start Docker service
+          ansible.builtin.service:
+            name: docker
+            state: started
+            enabled: true
+      when: ansible_os_family == "Debian" and docker_check.rc != 0
+
+    - name: Install Docker Engine (RHEL/CentOS/Fedora)
+      block:
+        - name: Add Docker repo (RHEL-based)
+          ansible.builtin.get_url:
+            url: https://download.docker.com/linux/centos/docker-ce.repo
+            dest: /etc/yum.repos.d/docker-ce.repo
+
+        - name: Install Docker packages
+          ansible.builtin.yum:
+            name:
+              - docker-ce
+              - docker-ce-cli
+              - containerd.io
+              - docker-compose-plugin
+            state: present
+
+        - name: Enable and start Docker service
+          ansible.builtin.service:
+            name: docker
+            state: started
+            enabled: true
+      when: ansible_os_family == "RedHat" and docker_check.rc != 0
+
+    - name: Ensure user is added to docker group
+      ansible.builtin.user:
+        name: "{{ lookup('env', 'USER') }}"
+        groups: docker
+        append: true
+
+    - name: Ensure project directory exists
+      ansible.builtin.file:
+        path: "{{ project_dir }}"
+        state: directory
+        owner: "{{ lookup('env', 'USER') }}"
+        mode: '0755'
+      when: action == "deploy"
+
+    - name: Copy project files (.env and compose)
+      ansible.builtin.copy:
+        src: "{{ item }}"
+        dest: "{{ project_dir }}/"
+      loop:
+        - ../compose.yml
+        - ../.env.docker
+      when: action == "deploy"
+      notify: Restart Docker Compose stack
+
+    - name: Copy Mongo init directory
+      ansible.builtin.copy:
+        src: ../mongo-init/
+        dest: "{{ project_dir }}/mongo-init/"
+        mode: '0755'
+        owner: "{{ lookup('env', 'USER') }}"
+      when: action == "deploy"
+
+    - name: Deploy Docker Compose stack
+      community.docker.docker_compose_v2:
+        project_src: "{{ project_dir }}"
+        state: present
+      when: action == "deploy"
+
+    - name: Wait for application startup
+      ansible.builtin.wait_for:
+        host: "127.0.0.1"
+        port: 5000
+        timeout: 30
+        state: started
+      when: action == "deploy"
+
+    - name: Display application access URL
+      ansible.builtin.debug:
+        msg: |
+          ProShop app is now running.
+          Access it in your browser at:
+            → http://localhost:5000
+      when: action == "deploy"
+
+    - name: Cleanup Docker Compose stack
+      community.docker.docker_compose_v2:
+        project_src: "{{ project_dir }}"
+        state: absent
+      when: action == "cleanup"
+
+    - name: Remove project directory on cleanup
+      ansible.builtin.file:
+        path: "{{ project_dir }}"
+        state: absent
+      when: action == "cleanup"
+
+  handlers:
+    - name: Restart Docker Compose stack
+      community.docker.docker_compose_v2:
+        project_src: "{{ project_dir }}"
+        state: restarted

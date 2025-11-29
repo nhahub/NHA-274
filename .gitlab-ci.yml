@@ -1,0 +1,281 @@
+workflow:
+  name: pro-shop
+  rules:
+    - if: '$CI_MERGE_REQUEST_SOURCE_BRANCH_NAME =~ /^feature/ && $CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH == "main"'
+
+stages:
+  - install
+  - test
+  - build
+  - security_scan
+  - k8s-deploy
+
+variables:
+  IMAGE_NAME: "proshop"
+  IMAGE_TAG: "$CI_COMMIT_SHORT_SHA"
+  NEXUS_REGISTRY: "$NEXUS_REGISTRY"
+  NEXUS_USER: "admin"
+  NEXUS_PASS: "$NEXUS_ADMIN_PASSWORD"
+  IMAGE: "$NEXUS_REGISTRY/$IMAGE_NAME:$IMAGE_TAG"
+
+cache:
+  key: ${CI_COMMIT_REF_SLUG}
+  paths:
+    - backend/node_modules/
+    - frontend/node_modules/
+
+install_backend:
+  stage: install
+  image: node:20
+  script:
+    - cd backend
+    - npm install
+  artifacts:
+    paths:
+      - "backend/node_modules/"
+
+install_frontend:
+  stage: install
+  image: node:20
+  script:
+    - cd frontend
+    - npm install
+  artifacts: 
+    paths:
+      - "frontend/node_modules/"
+
+unit_tests_backend:
+  stage: test
+  image: node:20
+  dependencies:
+    - install_backend
+  script:
+    - cd backend
+    - |
+      if [ -z "$(find src -type f -name '*.test.js' -o -name '*.spec.js' 2>/dev/null)" ]; then
+        echo "No backend tests found, skipping..."
+        exit 0
+      fi
+      npm test
+
+unit_tests_frontend:
+  stage: test
+  image: node:20
+  dependencies:
+    - install_frontend
+  script:
+    - cd frontend
+    - |
+      if [ -z "$(find src -type f -name '*.test.js' -o -name '*.spec.js' 2>/dev/null)" ]; then
+        echo "No frontend tests found, skipping..."
+        exit 0
+      fi
+      npm test
+
+lint_backend:
+  stage: test
+  image: node:20
+  dependencies:
+    - install_backend
+  script:
+    - cd backend
+    - npx eslint@8 . || true
+
+lint_frontend:
+  stage: test
+  image: node:20
+  dependencies:
+    - install_frontend
+  script:
+    - cd frontend
+    - npx eslint@8 . || true
+
+tf_validate:
+  stage: test
+  image:
+    name: hashicorp/terraform:1.9
+    entrypoint: [""]
+  script:
+    - terraform version
+    - terraform init -backend=false
+    - terraform validate
+  allow_failure: true
+
+building_job:
+  stage: build
+  image: docker:25.0.3
+  services:
+    - docker:25.0.3-dind
+  variables:
+    DOCKER_DRIVER: overlay2
+    DOCKER_TLS_CERTDIR: ""       
+    DOCKER_HOST: tcp://docker:2375 
+  script:
+    - echo "Building Docker image"
+    - docker build -t $IMAGE_NAME:$IMAGE_TAG -f backend/Dockerfile .
+    - echo "$NEXUS_PASS" | docker login -u "$NEXUS_USER" --password-stdin $NEXUS_REGISTRY
+    - docker tag $IMAGE_NAME:$IMAGE_TAG $NEXUS_REGISTRY/$IMAGE_NAME:$IMAGE_TAG
+    - docker push $NEXUS_REGISTRY/$IMAGE_NAME:$IMAGE_TAG
+    - mkdir -p image
+    - docker save -o image/proshop-$CI_PIPELINE_ID.tar $NEXUS_REGISTRY/$IMAGE_NAME:$IMAGE_TAG
+  artifacts:
+    paths:
+      - image/proshop-$CI_PIPELINE_ID.tar
+    expire_in: 3 days
+  allow_failure: true
+
+trivy_scan:
+  stage: security_scan
+  image: docker:25.0.3
+  services:
+    - docker:25.0.3-dind
+  variables:
+    DOCKER_DRIVER: overlay2
+  dependencies:
+    - building_job
+  script:
+    - apk add --no-cache curl
+    - curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
+    - docker load -i image/proshop-$CI_PIPELINE_ID.tar
+    - mkdir -p reports
+    - trivy image $NEXUS_REGISTRY/$IMAGE_NAME:$IMAGE_TAG --exit-code 0 --severity HIGH,CRITICAL --format table > reports/image-report.txt
+    - trivy fs . --severity HIGH,CRITICAL --exit-code 0 --format table > reports/trivy-report.txt
+    - trivy fs . --severity HIGH,CRITICAL --exit-code 0 --format json > reports/trivy-report.json
+  artifacts:
+    when: on_success
+    expire_in: 3 days
+    paths:
+      - reports/image-report.txt
+      - reports/trivy-report.txt
+      - reports/trivy-report.json
+
+gitleaks_scan:
+  stage: security_scan
+  image:
+    name: zricethezav/gitleaks:latest
+    entrypoint: [""]
+  script:
+    - mkdir -p reports
+    - gitleaks detect --source . --no-banner --redact --exit-code 0 --report-format json --report-path reports/gitleaks-report.json || true
+    - if [ -s reports/gitleaks-report.json ]; then echo "⚠️ Secrets detected! Check reports/gitleaks-report.json"; fi
+  artifacts:
+    when: always
+    paths:
+      - reports/gitleaks-report.json
+    expire_in: 3 days
+  allow_failure: true
+
+njsscan_scan:
+  stage: security_scan
+  image: python:3.11
+  before_script:
+    - pip3 install --upgrade njsscan
+  script:
+    - mkdir -p reports
+    - njsscan backend/ --sarif -o reports/njsscan-backend.sarif || true
+    - njsscan frontend/ --sarif -o reports/njsscan-frontend.sarif || true
+    - echo "NJSScan completed - check reports/njsscan-*.sarif"
+  artifacts:
+    when: always
+    paths:
+      - reports/njsscan-*.sarif
+    expire_in: 3 days
+  allow_failure: true
+
+semgrep_scan:
+  stage: security_scan
+  image: returntocorp/semgrep:latest
+  variables:
+    SEMGREP_RULES: p/javascript
+  script:
+    - mkdir -p reports
+    - semgrep ci --json --output reports/semgrep-report.json || true
+    - echo "Semgrep scan completed - check reports/semgrep-report.json"
+  artifacts:
+    when: always
+    paths:
+      - reports/semgrep-report.json
+    expire_in: 3 days
+  allow_failure: true
+
+tfsec_scan:
+  stage: security_scan
+  image:
+    name: aquasec/tfsec-ci:latest
+    entrypoint: [""]
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+  script:
+    - mkdir -p reports
+    - tfsec . --format sarif --out reports/tfsec.sarif --soft-fail || true
+    - tfsec . --format default --out reports/tfsec.txt --soft-fail || true
+    - tfsec . --no-colour --severity HIGH,CRITICAL --soft-fail || true
+  artifacts:
+    when: always
+    expire_in: 1 week
+    paths:
+      - reports/tfsec.sarif
+      - reports/tfsec.txt
+    reports:
+      sast: reports/tfsec.sarif
+  allow_failure: true 
+
+retirejs_scan:
+  stage: security_scan
+  image: node:20
+  script:
+    - mkdir -p reports
+    - echo "Installing Retire.js..."
+    - npm install -g retire
+    - echo "Running Retire.js scan on backend..."
+    - cd backend
+    - retire --outputformat json --outputpath ../reports/retire-backend.json || true
+    - retire --outputformat text --outputpath ../reports/retire-backend.txt || true
+    - cd ../frontend
+    - echo "Running Retire.js scan on frontend..."
+    - retire --outputformat json --outputpath ../reports/retire-frontend.json || true
+    - retire --outputformat text --outputpath ../reports/retire-frontend.txt || true
+  artifacts:
+    when: always
+    paths:
+      - reports/retire-*.json
+      - reports/retire-*.txt
+    expire_in: 3 days
+  allow_failure: true
+
+enhanced_dependency_scan:
+  stage: security_scan
+  image: node:20
+  dependencies:
+    - install_backend
+    - install_frontend
+  script:
+    - mkdir -p reports
+    - cd backend && npm audit --json > ../reports/backend-audit.json && npm audit --audit-level=moderate > ../reports/backend-audit.txt || true
+    - cd ../frontend && npm audit --json > ../reports/frontend-audit.json && npm audit --audit-level=moderate > ../reports/frontend-audit.txt || true
+  artifacts:
+    when: always
+    paths:
+      - reports/*-audit.*
+    expire_in: 3 days
+  allow_failure: true
+
+update_k8s_manifests:
+  stage: k8s-deploy
+  image: alpine:3.19
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+  before_script:
+    - apk add --no-cache git sed
+    - git config --global user.email "gitlab-ci@example.com"
+    - git config --global user.name "GitLab CI"
+  script:
+    - git fetch origin $CI_COMMIT_BRANCH
+    - git checkout $CI_COMMIT_BRANCH
+    - sed -i "s|\${IMAGE}|${IMAGE}|g" k8s/deployments/deploy.yml
+    - git add k8s/deployments/deploy.yml
+    - git diff --cached --quiet && exit 0          
+    - git commit -m "Auto-update image to ${IMAGE}"
+    - git push origin HEAD:$CI_COMMIT_BRANCH
+  allow_failure: true

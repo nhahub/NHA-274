@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: proshop-deploy
+spec:
+  selector:
+    matchLabels:
+      app: myapp
+  template:
+    metadata:
+      labels:
+        app: myapp
+    spec:
+      containers:
+        - name: myapp
+          image: abdullahhamada7/proshop:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 5000
+          resources:
+            requests:
+              cpu: "350m"      
+              memory: "200Mi"  
+            limits:
+              cpu: "700m"      
+              memory: "400Mi"  
+
+        
+          envFrom:
+            - configMapRef:
+                name: proshop-config
+            - secretRef:
+                name: proshop-secret

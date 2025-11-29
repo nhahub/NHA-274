@@ -1,0 +1,10 @@
+node_modules
+npm-debug.log
+.env
+uploads
+.git
+.gitignore
+frontend/node_modules
+frontend/.env
+host-nexus-data/
+host-nexus-data/javaprefs/

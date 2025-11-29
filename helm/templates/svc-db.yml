@@ -1,0 +1,17 @@
+{{- if .Values.mongodb.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-db-svc
+  labels:
+    {{- include "proshop.labels" . | nindent 4 }}
+    app.kubernetes.io/component: mongodb
+spec:
+  ports:
+    - port: {{ .Values.mongodb.service.port }}
+      targetPort: {{ .Values.mongodb.service.targetPort }}
+      name: mongodb
+  selector:
+    {{- include "proshop.mongodb.selectorLabels" . | nindent 4 }}
+  clusterIP: None
+{{- end }}

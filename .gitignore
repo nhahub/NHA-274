@@ -1,0 +1,78 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+node_modules
+/node_modules
+/.pnp
+.pnp.js
+
+# testing
+/coverage
+
+# production
+/build
+
+# misc
+.DS_Store
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+frontend/build
+uploads/*png
+uploads/*jpg
+
+# API tests
+http
+
+# Terraform
+terraform/.terraform
+terraform/.terraform.lock.hcl
+terraform/terraform.tfstate
+terraform/terraform.tfstate.backup
+terraform/*.tfstate
+terraform/*.tfstate.*
+terraform/tfplan
+terraform/tfplan.*
+terraform/.terraform/
+
+
+
+# Data and volumes
+host-nexus-data/
+.gitlab-ci-local/
+
+
+# Lock files (keep only pnpm-lock.yaml for consistency)
+package-lock.json
+yarn.lock
+
+# IDE and editors
+.vscode/
+
+# Temporary files
+*.tmp
+*.temp
+*.cache
+.eslintcache
+
+leaks.txt
+n8n.txt
+pass.txt
+commands.txt
+defectDojo.md
+securiy.md
+.githooks/
+terraform/.helm/cache/argocd-apps-2.0.2.tgz
+helm/proshop-1.0.0.tgz
+terraform/.helm/cache/argo-cd-9.1.3.tgz
+terraform.tfstate
+retire-report.json
+semgrep-report.json
+terraform/plan
+terraform/tfsec.json

@@ -1,0 +1,63 @@
+{{- if .Values.mongodb.enabled }}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ .Release.Name }}-mongo
+  labels:
+    {{- include "proshop.labels" . | nindent 4 }}
+    app.kubernetes.io/component: mongodb
+spec:
+  serviceName: {{ .Release.Name }}-db-svc
+  replicas: {{ .Values.mongodb.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "proshop.mongodb.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "proshop.mongodb.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: mongodb
+          image: "{{ .Values.mongodb.image.repository }}:{{ .Values.mongodb.image.tag }}"
+          imagePullPolicy: {{ .Values.mongodb.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.mongodb.service.targetPort }}
+              name: mongodb
+          envFrom:
+            - secretRef:
+                name: {{ .Release.Name }}-mongo-secret
+          volumeMounts:
+            - name: mongo-data
+              mountPath: /data/db
+            {{- if .Values.mongodb.initDb.enabled }}
+            - name: mongo-init-script
+              mountPath: /docker-entrypoint-initdb.d/init.js
+              subPath: init.js
+              readOnly: true
+            {{- end }}
+      volumes:
+        {{- if .Values.mongodb.initDb.enabled }}
+        - name: mongo-init-script
+          configMap:
+            name: {{ .Release.Name }}-mongo-init-script
+        {{- end }}
+  {{- if .Values.mongodb.persistence.enabled }}
+  volumeClaimTemplates:
+    - metadata:
+        name: mongo-data
+      spec:
+        accessModes:
+          - {{ .Values.mongodb.persistence.accessMode }}
+        {{- if .Values.mongodb.persistence.storageClass }}
+        storageClassName: {{ .Values.mongodb.persistence.storageClass }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ .Values.mongodb.persistence.size }}
+  {{- else }}
+      volumes:
+        - name: mongo-data
+          emptyDir: {}
+  {{- end }}
+{{- end }}

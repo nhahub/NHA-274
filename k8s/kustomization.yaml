@@ -1,0 +1,11 @@
+resources:
+  - config-maps/db-cm.yml
+  - config-maps/front-cm.yml
+
+  - secrets/db-secrets.yml
+  - secrets/front-secrets.yml
+  - services/db-svc.yml
+  - services/front-svc.yml
+  - statefulsets/stateful-set.yml
+  - deployments/deploy.yml 
+  - deployments/hpa.yaml

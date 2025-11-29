@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-config
+  labels:
+    {{- include "proshop.labels" . | nindent 4 }}
+data:
+  PORT: {{ .Values.app.config.port | quote }}
+  PAYPAL_API_URL: {{ .Values.app.config.paypalApiUrl | quote }}
+  SEED_ON_START: {{ .Values.app.config.seedOnStart | quote }}
+  NODE_ENV: {{ .Values.app.config.nodeEnv }}

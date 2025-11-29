@@ -1,0 +1,65 @@
+services:
+  mongo:
+    image: mongo:6.0
+    container_name: proshop-mongo
+    restart: unless-stopped
+    volumes:
+      - mongodata:/data/db
+      - ./mongo-init:/docker-entrypoint-initdb.d:ro
+    ports:
+      - '27017:27017'
+    networks:
+      - proshop-network
+
+  web:
+    image: proshop-backend
+    container_name: proshop-backend
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    depends_on:
+      - mongo
+    env_file:
+      - .env.docker
+    environment:
+      - NODE_ENV=production
+      - MONGO_URI=mongodb://mongo:27017/proshop
+    ports:
+      - '5000:5000'
+    restart: unless-stopped
+    networks:
+      - proshop-network
+
+  frontend:
+    image: proshop-frontend
+    container_name: proshop-frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    depends_on:
+      - web
+    environment:
+      - REACT_APP_API_URL=http://localhost:5000
+    ports:
+      - '3000:3000'
+    restart: unless-stopped
+    networks:
+      - proshop-network
+
+  nexus:
+    image: sonatype/nexus3
+    container_name: proshop-nexus
+    ports:
+      - "8081:8081"
+      - "8082:8082"
+    volumes:
+      - ./host-nexus-data:/nexus-data
+    networks:
+      - proshop-network
+
+networks:
+  proshop-network:
+    driver: bridge
+
+volumes:
+  mongodata:
