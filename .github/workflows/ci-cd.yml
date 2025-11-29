@@ -8,20 +8,23 @@ on:
     branches:
       - main
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   IMAGE_NAME: proshop
   REGISTRY: ghcr.io
-  BACKEND_IMAGE: ghcr.io/${{ github.repository }}/backend
-  FRONTEND_IMAGE: ghcr.io/${{ github.repository }}/frontend
 
 permissions:
   contents: read
   packages: write
 
 jobs:
-  install-backend:
-    name: Install Backend Dependencies
+  backend-install:
+    name: Backend - Install Dependencies
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     permissions:
       contents: read
       actions: write
@@ -45,9 +48,10 @@ jobs:
           path: backend/node_modules
           key: ${{ runner.os }}-backend-${{ hashFiles('backend/package-lock.json') }}
 
-  install-frontend:
-    name: Install Frontend Dependencies
+  frontend-install:
+    name: Frontend - Install Dependencies
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     permissions:
       contents: read
       actions: write
@@ -71,10 +75,11 @@ jobs:
           path: frontend/node_modules
           key: ${{ runner.os }}-frontend-${{ hashFiles('frontend/package-lock.json') }}
 
-  test-backend:
-    name: Backend Tests
+  backend-test:
+    name: Backend - Unit Tests
     runs-on: ubuntu-latest
-    needs: install-backend
+    timeout-minutes: 5
+    needs: backend-install
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -99,10 +104,11 @@ jobs:
           fi
           npm test
 
-  test-frontend:
-    name: Frontend Tests
+  frontend-test:
+    name: Frontend - Unit Tests
     runs-on: ubuntu-latest
-    needs: install-frontend
+    timeout-minutes: 5
+    needs: frontend-install
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -127,10 +133,11 @@ jobs:
           fi
           npm test
 
-  lint-backend:
-    name: Lint Backend
+  backend-lint:
+    name: Backend - Linting
     runs-on: ubuntu-latest
-    needs: install-backend
+    timeout-minutes: 5
+    needs: backend-install
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -151,10 +158,11 @@ jobs:
           cd backend
           npx eslint@8 . || true
 
-  lint-frontend:
-    name: Lint Frontend
+  frontend-lint:
+    name: Frontend - Linting
     runs-on: ubuntu-latest
-    needs: install-frontend
+    timeout-minutes: 5
+    needs: frontend-install
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -175,9 +183,10 @@ jobs:
           cd frontend
           npx eslint@8 . || true
 
-  tf-validate:
-    name: Terraform Validate
+  terraform-validate:
+    name: Terraform - Validate
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     continue-on-error: true
     steps:
       - name: Checkout code
@@ -194,10 +203,11 @@ jobs:
       - name: Terraform Validate
         run: terraform validate
 
-  build-backend:
-    name: Build Backend Image
+  backend-build:
+    name: Backend - Build & Push Image
     runs-on: ubuntu-latest
-    needs: [test-backend, lint-backend]
+    timeout-minutes: 15
+    needs: [backend-test, backend-lint]
     permissions:
       contents: read
       packages: write
@@ -207,6 +217,10 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+
+      - name: Downcase REPO
+        run: |
+          echo "REPO=${GITHUB_REPOSITORY,,}" >>${GITHUB_ENV}
 
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
@@ -219,7 +233,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.BACKEND_IMAGE }}
+          images: ghcr.io/${{ env.REPO }}/backend
           tags: |
             type=sha,prefix=,format=short
             type=ref,event=branch
@@ -236,10 +250,11 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  build-frontend:
-    name: Build Frontend Image
+  frontend-build:
+    name: Frontend - Build & Push Image
     runs-on: ubuntu-latest
-    needs: [test-frontend, lint-frontend]
+    timeout-minutes: 15
+    needs: [frontend-test, frontend-lint]
     permissions:
       contents: read
       packages: write
@@ -249,6 +264,10 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+
+      - name: Downcase REPO
+        run: |
+          echo "REPO=${GITHUB_REPOSITORY,,}" >>${GITHUB_ENV}
 
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
@@ -261,7 +280,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.FRONTEND_IMAGE }}
+          images: ghcr.io/${{ env.REPO }}/frontend
           tags: |
             type=sha,prefix=,format=short
             type=ref,event=branch
@@ -278,10 +297,11 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  trivy-scan:
-    name: Trivy Security Scan
+  security-trivy:
+    name: Security - Trivy Scan
     runs-on: ubuntu-latest
-    needs: [build-backend, build-frontend]
+    timeout-minutes: 15
+    needs: [backend-build, frontend-build]
     permissions:
       security-events: write
       contents: read
@@ -289,6 +309,10 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Downcase REPO
+        run: |
+          echo "REPO=${GITHUB_REPOSITORY,,}" >>${GITHUB_ENV}
 
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
@@ -300,7 +324,7 @@ jobs:
       - name: Run Trivy vulnerability scanner on backend
         uses: aquasecurity/trivy-action@0.28.0
         with:
-          image-ref: ${{ env.BACKEND_IMAGE }}:${{ github.event.pull_request.head.sha || github.sha }}
+          image-ref: ghcr.io/${{ env.REPO }}/backend:${{ github.event.pull_request.head.sha || github.sha }}
           format: 'table'
           exit-code: '0'
           severity: 'HIGH,CRITICAL'
@@ -311,7 +335,7 @@ jobs:
       - name: Run Trivy vulnerability scanner on frontend
         uses: aquasecurity/trivy-action@0.28.0
         with:
-          image-ref: ${{ env.FRONTEND_IMAGE }}:${{ github.event.pull_request.head.sha || github.sha }}
+          image-ref: ghcr.io/${{ env.REPO }}/frontend:${{ github.event.pull_request.head.sha || github.sha }}
           format: 'table'
           exit-code: '0'
           severity: 'HIGH,CRITICAL'
@@ -334,9 +358,10 @@ jobs:
         with:
           sarif_file: 'trivy-results.sarif'
 
-  gitleaks-scan:
-    name: Gitleaks Secret Scan
+  security-gitleaks:
+    name: Security - Gitleaks Scan
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     continue-on-error: true
     steps:
       - name: Checkout code
@@ -349,9 +374,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  njsscan:
-    name: njsscan SAST
+  security-njsscan:
+    name: Security - njsscan SAST
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     continue-on-error: true
     permissions:
       security-events: write
@@ -388,9 +414,10 @@ jobs:
           sarif_file: njsscan-frontend.sarif
           category: njsscan-frontend
 
-  semgrep:
-    name: Semgrep SAST
+  security-semgrep:
+    name: Security - Semgrep SAST
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     continue-on-error: true
     steps:
       - name: Checkout code
@@ -401,9 +428,10 @@ jobs:
         with:
           config: p/javascript
 
-  retirejs-scan:
-    name: RetireJS Scan
+  security-retirejs:
+    name: Security - RetireJS Scan
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     continue-on-error: true
     steps:
       - name: Checkout code
@@ -438,10 +466,11 @@ jobs:
             backend/retire-backend.json
             frontend/retire-frontend.json
 
-  dependency-scan:
-    name: NPM Audit
+  security-audit:
+    name: Security - NPM Audit
     runs-on: ubuntu-latest
-    needs: [install-backend, install-frontend]
+    timeout-minutes: 10
+    needs: [backend-install, frontend-install]
     continue-on-error: true
     steps:
       - name: Checkout code
@@ -485,9 +514,10 @@ jobs:
             backend/backend-audit.json
             frontend/frontend-audit.json
 
-  tfsec-scan:
-    name: tfsec Terraform Scan
+  security-tfsec:
+    name: Security - tfsec Terraform Scan
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     if: github.ref == 'refs/heads/main'
     continue-on-error: true
     permissions:
@@ -509,11 +539,12 @@ jobs:
         with:
           sarif_file: results.sarif
 
-  update-k8s-manifests:
-    name: Update K8s Manifests
+  deploy-manifests:
+    name: Deploy - Update K8s Manifests
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     if: github.ref == 'refs/heads/main'
-    needs: [build-backend, build-frontend]
+    needs: [backend-build, frontend-build]
     permissions:
       contents: write
     steps:
@@ -524,7 +555,8 @@ jobs:
 
       - name: Update deployment manifest
         run: |
-          IMAGE="${{ env.BACKEND_IMAGE }}:${{ github.sha }}"
+          REPO=${GITHUB_REPOSITORY,,}
+          IMAGE="ghcr.io/${REPO}/backend:${{ github.sha }}"
           sed -i "s|image:.*backend.*|image: ${IMAGE}|g" k8s/deployments/deploy.yml || true
 
       - name: Commit and push if changed
