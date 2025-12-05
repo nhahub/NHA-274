@@ -141,7 +141,89 @@ docker compose down
 
 ---
 
-## 2. Shell Script Deployment
+## 2. Make Commands (Recommended for Development)
+
+The project includes a comprehensive Makefile for common development tasks.
+
+### Quick Start
+
+```bash
+# View all available commands
+make help
+
+# Install dependencies
+make install
+
+# Build Docker images
+make build
+
+# Start all services
+make up
+
+# View logs
+make logs
+
+# Stop services
+make down
+```
+
+### Build Commands
+
+```bash
+make build              # Build both frontend and backend images
+make build-backend      # Build backend image only
+make build-frontend     # Build frontend image only
+make install            # Install npm dependencies
+```
+
+### Test Commands
+
+```bash
+make test               # Run all tests
+make test-backend       # Run backend tests
+make test-frontend      # Run frontend tests
+make lint               # Run all linters
+make lint-backend       # Run backend linter
+make lint-frontend      # Run frontend linter
+```
+
+### Docker Compose Commands
+
+```bash
+make up                 # Start all services
+make down               # Stop all services
+make restart            # Restart all services
+make logs               # View service logs
+make ps                 # Show running containers
+make status             # Show detailed status
+```
+
+### Cleanup Commands
+
+```bash
+make clean              # Remove node_modules and build artifacts
+make clean-docker       # Remove Docker containers and images
+make clean-cache        # Remove build caches
+make destroy            # Full cleanup (all of the above)
+```
+
+### Kubernetes Commands
+
+```bash
+make k8s-apply          # Apply Kubernetes manifests
+make k8s-delete         # Delete Kubernetes resources
+```
+
+### Utility Commands
+
+```bash
+make shell-backend      # Open shell in backend container
+make shell-frontend     # Open shell in frontend container
+```
+
+---
+
+## 3. Shell Script Deployment
 
 ### Steps
 
@@ -159,7 +241,7 @@ chmod +x manage_proshop.sh
 
 ---
 
-## 3. Ansible Deployment
+## 4. Ansible Deployment
 
 ### Deploy
 
@@ -175,7 +257,7 @@ ansible-playbook ansible/deploy.yml -e action=cleanup --ask-become-pass
 
 ---
 
-## 4. Helm Deployment
+## 5. Helm Deployment
 
 Your Helm chart supports dry-runs, templating, packaging, and installation.
 
@@ -217,7 +299,7 @@ helm package .
 
 ---
 
-## 5. Kustomize Deployment
+## 6. Kustomize Deployment
 
 ### Steps
 
@@ -240,7 +322,7 @@ kubectl delete -k k8s/
 ```
 ---
 
-## 6. Terraform Deployment (AWS Infrastructure)
+## 7. Terraform Deployment (AWS Infrastructure)
 
 The `terraform/` directory provisions the full AWS infrastructure required for the ProShop production environment (EKS, VPC, IAM, Route53, ALB Controller, ACM certificates, ESO permissions, EBS storage classes, and more).
 
