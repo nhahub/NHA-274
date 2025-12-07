@@ -120,7 +120,7 @@ applications:
     project: default
     source:
       path: k8s/eso
-      repoURL: https://gitlab.com/k-fathi/pro-shop.git
+      repoURL: https://github.com/nhahub/NHA-274.git
       targetRevision: feature/tf
     destination:
       namespace: eso
@@ -431,7 +431,7 @@ applications:
     namespace: argocd
     project: default
     source:
-      repoURL: https://gitlab.com/abdullah-hamada7/depi-project.git
+      repoURL: https://github.com/nhahub/NHA-274.git
       targetRevision: HEAD
       path: k8s
     metadata:
@@ -452,7 +452,7 @@ applications:
     project: default
     source:
       path: k8s/ingress
-      repoURL: https://gitlab.com/abdullah-hamada7/depi-project.git
+      repoURL: https://github.com/nhahub/NHA-274.git
       targetRevision: HEAD
       helm:
         values: |
