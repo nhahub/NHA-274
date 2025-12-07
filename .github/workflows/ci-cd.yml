@@ -560,9 +560,9 @@ jobs:
         run: |
           REPO=${GITHUB_REPOSITORY,,}
           IMAGE="ghcr.io/${REPO}/backend:${{ github.sha }}"
-          sed -i "s|image:.*backend.*|image: ${IMAGE}|g" k8s/deployments/deploy.yml || true
+          sed -i "s|image:.*backend.*|image: ${IMAGE}|g" k8s/deployments/back-deploy.yml || true
           IMAGE="ghcr.io/${REPO}/frontend:${{ github.sha }}"
-          sed -i "s|image:.*frontend.*|image: ${IMAGE}|g" k8s/deployments/deploy.yml || true
+          sed -i "s|image:.*frontend.*|image: ${IMAGE}|g" k8s/deployments/front-deploy.yml || true
 
       - name: Commit and push if changed
         run: |
