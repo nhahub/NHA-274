@@ -2,5 +2,13 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: proshop-config
+  labels:
+    app: proshop
+    env: production
+    version: v1.0
+    tier: frontend
+  annotations:
+    maintainer: "Team 274"
+    description: "Configuration for ProShop frontend application"
 data:
   REACT_APP_API_URL: http://proshop-backend:5000

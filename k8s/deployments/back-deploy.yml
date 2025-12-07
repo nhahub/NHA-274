@@ -2,6 +2,15 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: back-deploy
+  labels:
+    app: proshop
+    env: production
+    version: v1.0
+    tier: backend
+  annotations:
+    maintainer: "Team 274"
+    description: "Deployment for ProShop backend application"
+  
 spec:
   selector:
     matchLabels:
@@ -13,7 +22,7 @@ spec:
     spec:
       containers:
         - name: backend
-          image: ghcr.io/nhahub/nha-274/backend:13b39ea09ce09d84843e65ee56b7081c185079cb
+          image: ghcr.io/nhahub/nha-274/backend:13b39ea09ce09d84843e65ee56b7081c185079cb # image in GitHub Container Registry
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 5000

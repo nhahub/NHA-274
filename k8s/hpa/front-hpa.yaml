@@ -2,6 +2,14 @@ apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
   name: proshop-hpa
+  labels:
+    app: proshop
+    env: production
+    version: v1.0
+    tier: frontend
+  annotations:
+    maintainer: "Team 274"  
+    description: "HPA for ProShop frontend deployment"
 spec:
   scaleTargetRef:
     apiVersion: apps/v1

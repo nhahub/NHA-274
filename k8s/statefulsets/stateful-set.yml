@@ -4,6 +4,12 @@ metadata:
   name: mongo
   labels:
     app: mongo
+    env: production
+    version: v1.0
+    tier: database
+  annotations:
+    maintainer: "Team 274"
+    description: "StatefulSet for ProShop MongoDB database"
 spec:
   serviceName: db-svc
   replicas: 1
@@ -25,18 +31,18 @@ spec:
           envFrom:
             - secretRef:
                 name: mongo-secret
-          volumeMounts:
+          volumeMounts: # Mount volumes for data and initialization script
             - name: mongo-data
               mountPath: /data/db
             - name: mongo-init-script
               mountPath: /docker-entrypoint-initdb.d/init.js
               subPath: init.js
               readOnly: true
-      volumes:
+      volumes: # Volume for initialization script
         - name: mongo-init-script
           configMap:
             name: mongo-init-script
-  volumeClaimTemplates:
+  volumeClaimTemplates: # Define persistent volume claim for MongoDB data
     - metadata:
         name: mongo-data
       spec:

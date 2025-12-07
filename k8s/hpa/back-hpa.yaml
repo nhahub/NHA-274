@@ -2,6 +2,14 @@ apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
   name: back-hpa
+  labels:
+    app: proshop
+    env: production
+    version: v1.0
+    tier: backend
+  annotations:
+    maintainer: "Team 274"
+    description: "HPA for ProShop backend deployment"
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
@@ -22,24 +30,24 @@ spec:
         target:
           type: Utilization
           averageUtilization: 80
-  behavior:
-    scaleUp:
-      stabilizationWindowSeconds: 0
-      policies:
-      - type: Percent
+  behavior: # Optional: Define scaling behavior to control how fast scaling occurs
+    scaleUp: # Optional: Define scale-up behavior to prevent rapid scaling
+      stabilizationWindowSeconds: 0 # No stabilization window for scale-up
+      policies: 
+      - type: Percent # Scale up by a maximum of 100% of current replicas every 15 seconds
         value: 100
         periodSeconds: 15
-      - type: Pods
+      - type: Pods # Scale up by a maximum of 2 pods every 15 seconds
         value: 2
         periodSeconds: 15
-      selectPolicy: Max
-    scaleDown:
-      stabilizationWindowSeconds: 300
+      selectPolicy: Max # Choose the most aggressive policy for scaling up
+    scaleDown: # Optional: Define scale-down behavior to prevent rapid scaling down
+      stabilizationWindowSeconds: 300 # 5 minutes stabilization window for scale-down
       policies:
-      - type: Percent
-        value: 50
+      - type: Percent # Scale down by a maximum of 50% of current replicas every 15 seconds
+        value: 50 
         periodSeconds: 15
-      - type: Pods
+      - type: Pods # Scale down by a maximum of 1 pod every 60 seconds
         value: 1
         periodSeconds: 60
-      selectPolicy: Min
+      selectPolicy: Min # Choose the least aggressive policy for scaling down

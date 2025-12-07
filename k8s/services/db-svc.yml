@@ -4,6 +4,12 @@ metadata:
   name: db-svc
   labels:
     app: mongo
+    env: production
+    version: v1.0
+    tier: database
+  annotations:
+    maintainer: "Team 274"  
+    description: "Service for ProShop MongoDB database"
 spec:
   ports:
     - port: 27017

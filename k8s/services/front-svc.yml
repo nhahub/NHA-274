@@ -2,6 +2,14 @@ apiVersion: v1
 kind: Service
 metadata:
   name: proshop-svc
+  labels:
+    app: myapp
+    env: production
+    version: v1.0
+    tier: frontend
+  annotations:
+    maintainer: "Team 274"
+    description: "Service for MyApp frontend application"
 spec:
   selector:
     app: myapp
