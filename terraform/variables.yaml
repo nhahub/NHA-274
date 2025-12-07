@@ -6,3 +6,4 @@ MONGO_INITDB_DATABASE: "proshop"
 JWT_SECRET: "SupErSecr@t"
 PAYPAL_CLIENT_ID: "sb"
 PAYPAL_APP_SECRET: "sb_secret"
+# PAYPAL_API_URL: https://api-m.sandbox.paypal.com

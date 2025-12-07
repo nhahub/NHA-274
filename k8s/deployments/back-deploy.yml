@@ -1,19 +1,19 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: proshop-deploy
+  name: back-deploy
 spec:
   selector:
     matchLabels:
-      app: myapp
+      app: backend
   template:
     metadata:
       labels:
-        app: myapp
+        app: backend
     spec:
       containers:
-        - name: myapp
-          image: abdullahhamada7/proshop:latest
+        - name: backend
+          image: proshop-backend
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 5000
@@ -27,7 +27,5 @@ spec:
 
         
           envFrom:
-            - configMapRef:
-                name: proshop-config
             - secretRef:
                 name: proshop-secret

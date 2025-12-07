@@ -46,16 +46,16 @@ services:
     networks:
       - proshop-network
 
-  nexus:
-    image: sonatype/nexus3
-    container_name: proshop-nexus
-    ports:
-      - "8081:8081"
-      - "8082:8082"
-    volumes:
-      - ./host-nexus-data:/nexus-data
-    networks:
-      - proshop-network
+  # nexus:
+  #   image: sonatype/nexus3
+  #   container_name: proshop-nexus
+  #   ports:
+  #     - "8081:8081"
+  #     - "8082:8082"
+  #   volumes:
+  #     - ./host-nexus-data:/nexus-data
+  #   networks:
+  #     - proshop-network
 
 networks:
   proshop-network:

@@ -10,7 +10,7 @@ COPY . .
 
 RUN npm run build
 
-FROM nginx:alpine
+FROM nginx:1.28-alpine3.21-otel
 
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 

@@ -3,7 +3,4 @@ kind: ConfigMap
 metadata:
   name: proshop-config
 data:
-  PORT: "5000"
-  PAYPAL_API_URL: "https://api-m.sandbox.paypal.com"
-  SEED_ON_START: "true"
-  NODE_ENV: production
+  REACT_APP_API_URL: http://proshop-backend:5000
