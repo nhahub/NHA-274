@@ -13,7 +13,7 @@ spec:
     spec:
       containers:
         - name: backend
-          image: proshop-backend
+          image: ghcr.io/nhahub/nha-274/backend:13b39ea09ce09d84843e65ee56b7081c185079cb
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 5000
