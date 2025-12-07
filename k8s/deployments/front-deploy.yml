@@ -13,7 +13,7 @@ spec:
     spec:
       containers:
         - name: myapp
-          image: proshop-frontend
+          image: ghcr.io/nhahub/nha-274/frontend:13b39ea09ce09d84843e65ee56b7081c185079cb
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 3000
