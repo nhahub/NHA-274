@@ -1,5 +1,5 @@
 resource "aws_ssm_parameter" "db_creds" {
-  name      = "prod/mongo/credentials"
+  name      = "/prod/mongo/credentials"
   type      = "SecureString"
   overwrite = true
   value     = jsonencode({
@@ -10,7 +10,7 @@ resource "aws_ssm_parameter" "db_creds" {
 }
 
 resource "aws_ssm_parameter" "back_creds" {
-  name      = "prod/back/credentials"
+  name      = "/prod/back/credentials"
   type      = "SecureString"
   overwrite = true
   value     = jsonencode({

@@ -121,7 +121,7 @@ applications:
     source:
       path: k8s/eso
       repoURL: https://github.com/nhahub/NHA-274.git
-      targetRevision: feature/tf
+      targetRevision: HEAD
     destination:
       namespace: eso
       server: https://kubernetes.default.svc
