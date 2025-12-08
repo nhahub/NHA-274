@@ -16,7 +16,6 @@ spec:
     rollingUpdate:
       maxSurge: 2       # two extra pods can be created during update      
       maxUnavailable: 1 # at least one pod should be available during update
-  replicas: 3
   selector:
     matchLabels:
       app: myapp
