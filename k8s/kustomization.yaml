@@ -3,8 +3,8 @@ resources:
   - config-maps/front-cm.yml
   
 
-  - secrets/db-secrets.yml
-  - secrets/back-secrets.yml
+  # - secrets/db-secrets.yml
+  # - secrets/back-secrets.yml
 
   - services/db-svc.yml
   - services/front-svc.yml
