@@ -79,3 +79,5 @@ terraform/tfsec.json
 
 *.tar
 
+**/variables.yaml
+terraform/variables.yaml
