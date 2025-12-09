@@ -44,3 +44,11 @@ resource "aws_route53_record" "users_validation" {
   type            = each.value.type
   zone_id         = aws_route53_zone.users_domain.zone_id
 }
+
+# resource "aws_acm_certificate_validation" "users" {
+#   certificate_arn = aws_acm_certificate.users.arn
+#   timeouts {
+#     create = "5m"
+#   }
+#   depends_on = [aws_route53_record.users_validation]
+# }

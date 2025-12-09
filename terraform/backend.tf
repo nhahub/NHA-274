@@ -1,18 +1,9 @@
-# terraform {
-#   required_providers {
-#     random = {
-#       source  = "hashicorp/random"
-#       version = "~> 3.5"
-#     }
-#   }
-# }
-
 # resource "random_pet" "this" {
 #   length = 2
 # }
 
 # resource "aws_s3_bucket" "terraform_state" {
-#   bucket = "${var.cluster_name}-terraform-state-${random_pet.this.id}"
+#   bucket = "terraform-state-${random_pet.this.id}"
 
 #   tags = {
 #     Name = "${var.cluster_name}-Terraform-State"
@@ -59,16 +50,15 @@
 #   }
 # }
 
-# We will uncomment it after the S3 bucket and DynamoDB table are created
+# Uncomment after S3 and DynamoDB are created
+# Replace BUCKET_NAME, REGION, and TABLE_NAME with actual values from terraform apply output
 
 # terraform {
 #   backend "s3" {
-#     # Replace this with the name of your bucket
-#     bucket         = aws_s3_bucket.terraform_state.id
+#     bucket         = "terraform-state-giving-tarpon"
 #     key            = "eks/terraform.tfstate"
-#     region         = var.region
-#     # Replace this with the name of your DynamoDB table
-#     dynamodb_table = aws_dynamodb_table.terraform_locks.name
+#     region         = "eu-north-1"
+#     dynamodb_table = "EKS-cluster-terraform-locks"
 #     encrypt        = true
 #   }
 # }
