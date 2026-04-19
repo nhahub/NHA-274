@@ -26,7 +26,7 @@ spec:
     spec:
       containers:
         - name: myapp
-          image: ghcr.io/nhahub/nha-274/frontend:5909141d31c43cbcf4d571ca97832a7eabf2793d
+          image: ghcr.io/nhahub/nha-274/frontend:2c65c3abf9184510f3c3ac037dcf19357974af85
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 3000
