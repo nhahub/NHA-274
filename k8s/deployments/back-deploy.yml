@@ -22,7 +22,7 @@ spec:
     spec:
       containers:
         - name: backend
-          image: ghcr.io/nhahub/nha-274/backend:cd0f9f4c3d2bf16884a5ef22e18053262e735792
+          image: ghcr.io/nhahub/nha-274/backend:59a802abe6c38adbf965d48c7c155476ccf831fd
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 5000
